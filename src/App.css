@@ -1,0 +1,175 @@
+
+  /* Textareas for front/back content */
+  .latexTextbox {
+    font-family: "Computer Modern", serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    padding: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+/* Preview container: normal text will be 1.2rem */
+.previewContainer {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    min-height: 100px;
+    white-space: pre-wrap;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: "Computer Modern", serif;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  /* Force all KaTeX-rendered math to inherit a base size of 1rem */
+  .previewContainer .katex,
+  .previewContainer .katex * {
+    font-size: 1rem !important;
+    line-height: inherit !important;
+  }
+  
+  /* Then, target ordinary math elements (usually letters) and scale them down */
+  .previewContainer .katex .mord {
+    font-size: 1rem !important; /* adjust as needed */
+  }
+  
+  .previewContainer {
+    text-align: left; /* Normal text is left-aligned */
+  }
+
+/* Remove default margins/padding and set a white background */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #fff; /* was #f7f7f7 */
+    color: #333;
+  }
+  
+  /* Main container styling */
+  .App {
+    max-width: 1600px;
+    margin: 0 auto; /* remove extra top margin if you like */
+    padding: 1rem;
+    background-color: #fff;
+    box-shadow: none; /* remove if you want no "card" effect */
+    border-radius: 0; /* remove rounding */
+  }
+  
+  
+  /* Headings */
+  h1, h2, h3 {
+    color: #333;
+  }
+  
+  /* Textareas */
+  .latexTextbox {
+    font-family: "Computer Modern", serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    padding: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  /* Preview Containers */
+  .previewContainer {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    min-height: 100px;
+    white-space: pre-wrap;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: "Computer Modern", serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    background-color: #fff;
+    border-radius: 4px;
+  }
+  
+  /* Buttons */
+  .btn {
+    background-color: #007bff;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+    font-size: 1rem;
+  }
+  .btn:hover {
+    background-color: #0056b3;
+    transform: scale(1.02);
+  }
+  
+  /* Ensure all buttons use the btn class in JSX */
+  button.btn,
+  button {
+    font-family: inherit;
+  }
+  
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal {
+    background-color: white;
+    padding: 1rem;
+    width: 400px;
+    border-radius: 5px;
+  }
+  .modal h2 {
+    margin-top: 0;
+  }
+  
+  /* Flashcard Item Header */
+  .flashcard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .flashcard-header-left {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .flashcard-label {
+    font-weight: bold;
+  }
+  
+  /* Flashcard Previews */
+  .flashcard-previews {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  /* Tag styles */
+  .tag {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    margin: 0.25rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+    font-size: 0.9rem;
+  }
+  .tag:hover {
+    background-color: lightgreen;
+    transform: scale(1.05);
+  }
+  .tag.selected {
+    background-color: green;
+    color: white;
+    transform: scale(1);
+  }
