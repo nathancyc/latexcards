@@ -1,4 +1,4 @@
-Flashcards with Katex/Linux capabilities
+Flashcards with KaTeX/LaTeX
 
 To do:
 - [ ] Add 'Flashcard' capabilities
