@@ -3,23 +3,18 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import renderMathInElement from 'katex/contrib/auto-render/auto-render';
 
-/* MacroModal: 
-   Provides a quick-add interface for macros and displays the list of currently defined macros.
-   When you click "Edit" next to a macro, it pre-fills the quick-add inputs (without immediately deleting the macro).
-*/
+/* -------------------------------------------------------------------------- */
+/* MacroModal (unchanged from previous) */
+/* -------------------------------------------------------------------------- */
 function MacroModal({ onClose, onAddOrUpdateMacro, macroList }) {
   const [quickCommand, setQuickCommand] = useState('');
   const [quickDefinition, setQuickDefinition] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // Refs for the modal container and the input fields
   const containerRef = useRef(null);
   const commandInputRef = useRef(null);
   const definitionInputRef = useRef(null);
 
-  // Key handler:
-  // - If either input is focused and Enter is pressed, trigger add/update action.
-  // - If Escape is pressed, close the modal.
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Enter') {
@@ -99,7 +94,6 @@ function MacroModal({ onClose, onAddOrUpdateMacro, macroList }) {
           />
         </div>
 
-        {/* Existing Macros List */}
         {macroList.length > 0 && (
           <div>
             <h3>Current Macros</h3>
@@ -128,7 +122,6 @@ function MacroModal({ onClose, onAddOrUpdateMacro, macroList }) {
             </ul>
           </div>
         )}
-        {/* Bottom Buttons: "Add Macro" (or "Update Macro") on left, "Close" on right */}
         <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between' }}>
           <button onClick={handleQuickAction}>
             {editingIndex !== null ? 'Update Macro' : 'Add Macro'}
@@ -142,25 +135,20 @@ function MacroModal({ onClose, onAddOrUpdateMacro, macroList }) {
   );
 }
 
-/* TagModal:
-   Allows you to assign tags to a flashcard. You can choose from pre-existing tags (checkboxes)
-   or add a new tag. On Save, it returns the selected tags.
-*/
+/* -------------------------------------------------------------------------- */
+/* TagModal (updated to handle ESC anywhere) */
+/* -------------------------------------------------------------------------- */
 function TagModal({ onClose, onSave, currentTags, allTags }) {
-  // Local copy of all tags so new ones show immediately
   const [localAllTags, setLocalAllTags] = useState([...allTags]);
-  // Tags selected for this flashcard
   const [selectedTags, setSelectedTags] = useState(currentTags || []);
-  // New tag input field value
   const [newTag, setNewTag] = useState('');
 
-  // Refs for the modal container and new tag input
   const containerRef = useRef(null);
   const newTagInputRef = useRef(null);
 
-  // Key handler: Enter adds a new tag (if input is focused) or saves; Escape saves and closes.
+  // Global keydown listener (capture phase) for ESC/Enter
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleGlobalKeyDown = (e) => {
       if (e.key === 'Enter') {
         if (document.activeElement === newTagInputRef.current) {
           e.preventDefault();
@@ -169,15 +157,17 @@ function TagModal({ onClose, onSave, currentTags, allTags }) {
           e.preventDefault();
           handleSave();
         }
+        // Prevent the event from reaching background components
+        e.stopPropagation();
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         handleSave();
       }
     };
-    const containerEl = containerRef.current;
-    containerEl.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleGlobalKeyDown, true);
     return () => {
-      containerEl.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleGlobalKeyDown, true);
     };
   }, [selectedTags, newTag]);
 
@@ -214,6 +204,7 @@ function TagModal({ onClose, onSave, currentTags, allTags }) {
       style={{
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 3000,
         backgroundColor: 'rgba(0,0,0,0.5)',
         display: 'flex',
         justifyContent: 'center',
@@ -223,7 +214,6 @@ function TagModal({ onClose, onSave, currentTags, allTags }) {
       <div style={{ backgroundColor: 'white', padding: '1rem', width: '300px', borderRadius: '5px' }}>
         <h2>Tag Flashcard</h2>
         
-        {/* Existing Tags List */}
         <div>
           <h3>Select Existing Tags:</h3>
           {localAllTags.length === 0 && <p>No tags available.</p>}
@@ -240,7 +230,6 @@ function TagModal({ onClose, onSave, currentTags, allTags }) {
           ))}
         </div>
 
-        {/* New Tag Input */}
         <div style={{ marginTop: '1rem' }}>
           <h3>Add New Tag:</h3>
           <input
@@ -253,7 +242,6 @@ function TagModal({ onClose, onSave, currentTags, allTags }) {
           />
         </div>
 
-        {/* Bottom Buttons: "Add Tag" on left, "Close" on right */}
         <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
           <button onClick={handleAddNewTag}>Add Tag</button>
           <button onClick={handleSave}>Close</button>
@@ -263,28 +251,27 @@ function TagModal({ onClose, onSave, currentTags, allTags }) {
   );
 }
 
-/* FlashcardItem:
-   Renders a submitted flashcard with a header that displays:
-   - "Edit" and "Tag" buttons on the left
-   - A "Tags:" label and the list of tags on the right
-   Below that, the front and back previews are displayed side by side.
+
+
+/* -------------------------------------------------------------------------- */
+/* FlashcardItem 
+   - We add a new "Delete" button that calls onDelete().
 */
-function FlashcardItem({ card, index, macros, onEdit, onTag }) {
+/* -------------------------------------------------------------------------- */
+function FlashcardItem({ card, index, macros, onEdit, onTag, onDelete }) {
   const frontRef = useRef(null);
   const backRef = useRef(null);
 
   useEffect(() => {
     const processText = (text) => text.replace(/\/\/+/g, "\n");
-  
-    // If you want to add \displaystyle for single-dollar delimiters, you can include that logic here
     const addDisplayStyle = (text) => {
       const inlineRegex = /(?<!\$)\$(?!\$)([\s\S]+?)(?<!\$)\$(?!\$)/g;
       return text.replace(inlineRegex, (match, content) => `$\\displaystyle ${content}$`);
     };
-  
+
     const processedFront = addDisplayStyle(processText(card.front));
     const processedBack = addDisplayStyle(processText(card.back));
-  
+
     if (frontRef.current) {
       frontRef.current.innerHTML = processedFront;
       renderMathInElement(frontRef.current, {
@@ -311,10 +298,8 @@ function FlashcardItem({ card, index, macros, onEdit, onTag }) {
     }
   }, [card, macros]);
   
-
   return (
     <div style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
-      {/* Header Row */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -324,12 +309,15 @@ function FlashcardItem({ card, index, macros, onEdit, onTag }) {
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button onClick={onEdit} style={{ padding: '0.3rem 0.6rem' }}>Edit</button>
           <button onClick={onTag} style={{ padding: '0.3rem 0.6rem' }}>Tag</button>
+          {/* NEW: Delete button */}
+          <button onClick={onDelete} style={{ padding: '0.3rem 0.6rem', backgroundColor: '#dc3545', color: 'white' }}>
+            Delete
+          </button>
         </div>
         <div>
           <strong>Tags:</strong> {card.tags && card.tags.length > 0 ? card.tags.join(', ') : 'None'}
         </div>
       </div>
-      {/* Front/Back Previews */}
       <div style={{ display: 'flex', gap: '1rem' }}>
         <div style={{ flex: 1 }} ref={frontRef} />
         <div style={{ flex: 1 }} ref={backRef} />
@@ -338,58 +326,233 @@ function FlashcardItem({ card, index, macros, onEdit, onTag }) {
   );
 }
 
-/* FlashcardApp: 
-   Combines flashcard editing (with live previews), macros, flashcard listing, tagging,
-   and export/import JSON functionality.
+/* -------------------------------------------------------------------------- */
+/* RenderedCard (preserves line breaks, left-aligned) */
+/* -------------------------------------------------------------------------- */
+function RenderedCard({ text, macros }) {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    const processText = (t) => t.replace(/\/\/+/g, "\n");
+    const addDisplayStyle = (t) => {
+      const inlineRegex = /(?<!\$)\$(?!\$)([\s\S]+?)(?<!\$)\$(?!\$)/g;
+      return t.replace(inlineRegex, (match, content) => `$\\displaystyle ${content}$`);
+    };
+
+    const processed = addDisplayStyle(processText(text));
+    if (cardRef.current) {
+      cardRef.current.innerHTML = processed;
+      renderMathInElement(cardRef.current, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '\\[', right: '\\]', display: true },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false,
+        macros: macros
+      });
+    }
+  }, [text, macros]);
+
+  return (
+    <div
+      ref={cardRef}
+      style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}
+    />
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* FlashcardViewerModal (unchanged) */
+/* -------------------------------------------------------------------------- */
+function FlashcardViewerModal({
+  flashcards,
+  macros,
+  onClose,
+  onEditCard,
+  onTagCard,
+  viewerTagFilter,
+  setViewerTagFilter,
+  allTags
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showingFront, setShowingFront] = useState(true);
+  const [cards, setCards] = useState([]);
+
+  // Filter cards by viewerTagFilter
+  useEffect(() => {
+    let relevantCards = flashcards.map((card, i) => ({ ...card, _originalIndex: i }));
+    if (viewerTagFilter !== 'No Filter') {
+      relevantCards = relevantCards.filter((c) => c.tags && c.tags.includes(viewerTagFilter));
+    }
+    setCards(relevantCards);
+    setCurrentIndex(0);
+    setShowingFront(true);
+  }, [flashcards, viewerTagFilter]);
+
+  // Keydown for flipping, arrow nav, escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
+        setShowingFront(true);
+      } else if (e.key === 'ArrowRight') {
+        setCurrentIndex((prev) => (prev + 1) % cards.length);
+        setShowingFront(true);
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        setShowingFront((prev) => !prev);
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [cards, onClose]);
+
+  const handleFlip = () => {
+    setShowingFront((prev) => !prev);
+  };
+
+  const handleShuffle = () => {
+    const shuffled = [...cards].sort(() => Math.random() - 0.5);
+    setCards(shuffled);
+    setCurrentIndex(0);
+    setShowingFront(true);
+  };
+
+  const handleEditClick = () => {
+    if (cards.length === 0) return;
+    const origIndex = cards[currentIndex]._originalIndex;
+    onClose();
+    onEditCard(origIndex);
+  };
+
+  const handleTagClick = () => {
+    if (cards.length === 0) return;
+    const origIndex = cards[currentIndex]._originalIndex;
+    // Do not close the viewer here, so the TagModal overlays it
+    onTagCard(origIndex);
+  };
+
+  const currentCard = cards[currentIndex];
+
+  return (
+    <div className="flashcard-modal-overlay" onClick={onClose}>
+      <div className="flashcard-modal" onClick={(e) => e.stopPropagation()}>
+        <span className="close-btn" onClick={onClose}>&times;</span>
+
+        {/* Viewer Tag Filter */}
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label style={{ fontWeight: 'bold', marginRight: '0.5rem' }}>Filter by Tag:</label>
+          <select
+            value={viewerTagFilter}
+            onChange={(e) => setViewerTagFilter(e.target.value)}
+            style={{ padding: '0.3rem' }}
+          >
+            <option value="No Filter">No Filter</option>
+            {allTags.map((tag) => (
+              <option key={tag} value={tag}>{tag}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Front/Back Indicator */}
+        <div style={{ marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1.2rem' }}>
+          {showingFront ? 'Front' : 'Back'}
+        </div>
+
+        {/* Flashcard Content */}
+        <div className="flashcard" onClick={handleFlip}>
+          {cards.length > 0 ? (
+            showingFront
+              ? <RenderedCard text={currentCard.front} macros={macros} />
+              : <RenderedCard text={currentCard.back} macros={macros} />
+          ) : (
+            'No flashcards available.'
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div>
+          <button
+            className="btn nav-button"
+            onClick={() => {
+              setCurrentIndex((currentIndex - 1 + cards.length) % cards.length);
+              setShowingFront(true);
+            }}
+          >
+            &#8592;
+          </button>
+          <button
+            className="btn nav-button"
+            onClick={() => {
+              setCurrentIndex((currentIndex + 1) % cards.length);
+              setShowingFront(true);
+            }}
+          >
+            &#8594;
+          </button>
+        </div>
+
+        {/* Shuffle, Edit, Tag */}
+        <div style={{ marginTop: '1rem' }}>
+          <button className="btn shuffle-btn" onClick={handleShuffle}>
+            Shuffle
+          </button>
+          {' '}
+          <button className="btn shuffle-btn" onClick={handleEditClick}>
+            Edit
+          </button>
+          {' '}
+          <button className="btn shuffle-btn" onClick={handleTagClick}>
+            Tag
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* FlashcardApp 
+   - Now includes a delete handler for the new Delete button
 */
+/* -------------------------------------------------------------------------- */
 function FlashcardApp() {
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
   const [flashcards, setFlashcards] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
 
-  // Macros state (for KaTeX and display)
   const [macros, setMacros] = useState({});
   const [macroList, setMacroList] = useState([]);
-
-  // Control Macro Modal visibility
   const [showMacroModal, setShowMacroModal] = useState(false);
 
-  // Tagging state
-  const [allTags, setAllTags] = useState([]); // Global available tags
+  const [allTags, setAllTags] = useState([]);
   const [tagModalFlashcardIndex, setTagModalFlashcardIndex] = useState(null);
   const [selectedTagFilter, setSelectedTagFilter] = useState('All');
 
-  // Refs for live preview in the flashcard editor
+  const [viewerTagFilter, setViewerTagFilter] = useState('No Filter');
+  const [showFlashcardViewer, setShowFlashcardViewer] = useState(false);
+
   const frontPreviewRef = useRef(null);
   const backPreviewRef = useRef(null);
 
-  // Update live previews when front/back/macros change
   useEffect(() => {
     const processText = (text) => text.replace(/\/\/+/g, "\n");
-
-    // This function finds inline math (single $ delimiters) and adds \displaystyle
     const addDisplayStyle = (text) => {
-      // Regex explanation:
-      // (?<!\$)   => ensures the $ is not preceded by another $
-      // \$        => match the opening single $
-      // (?!\$)    => ensures the opening $ is not immediately followed by another $
-      // ([\s\S]+?)=> lazily capture everything until the next $ (including newlines)
-      // (?<!\$)   => ensures the closing $ is not preceded by another $
-      // \$        => match the closing $
-      // (?!\$)    => ensures the closing $ is not followed by another $
       const inlineRegex = /(?<!\$)\$(?!\$)([\s\S]+?)(?<!\$)\$(?!\$)/g;
       return text.replace(inlineRegex, (match, content) => `$\\displaystyle ${content}$`);
     };
 
-    const processedFront = processText(front);
-    const processedBack = processText(back);
-
-    const processedFrontWithDisplay = addDisplayStyle(processedFront);
-    const processedBackWithDisplay = addDisplayStyle(processedBack);
+    const processedFront = addDisplayStyle(processText(front));
+    const processedBack = addDisplayStyle(processText(back));
 
     if (frontPreviewRef.current) {
-      frontPreviewRef.current.innerHTML = processedFrontWithDisplay;
+      frontPreviewRef.current.innerHTML = processedFront;
       renderMathInElement(frontPreviewRef.current, {
         delimiters: [
           { left: '$$', right: '$$', display: true },
@@ -401,7 +564,7 @@ function FlashcardApp() {
       });
     }
     if (backPreviewRef.current) {
-      backPreviewRef.current.innerHTML = processedBackWithDisplay;
+      backPreviewRef.current.innerHTML = processedBack;
       renderMathInElement(backPreviewRef.current, {
         delimiters: [
           { left: '$$', right: '$$', display: true },
@@ -436,14 +599,18 @@ function FlashcardApp() {
     setEditingIndex(index);
   };
 
-  // Tag modal handling
+  // NEW: Delete flashcard
+  const handleDeleteCard = (index) => {
+    const updated = flashcards.filter((_, i) => i !== index);
+    setFlashcards(updated);
+  };
+
   const openTagModal = (index) => {
     setTagModalFlashcardIndex(index);
   };
 
   const handleSaveTags = (tags) => {
     if (tagModalFlashcardIndex === null) return;
-    // Update global tags by merging in any new ones
     const newGlobalTags = [...allTags];
     tags.forEach(tag => {
       if (!newGlobalTags.includes(tag)) {
@@ -451,7 +618,7 @@ function FlashcardApp() {
       }
     });
     setAllTags(newGlobalTags);
-    // Update the flashcard's tags
+
     const updatedFlashcards = flashcards.map((card, idx) =>
       idx === tagModalFlashcardIndex ? { ...card, tags } : card
     );
@@ -459,13 +626,12 @@ function FlashcardApp() {
     setTagModalFlashcardIndex(null);
   };
 
-  // Filter flashcards by tag
+  // Filter for main page
   const filteredFlashcards =
     selectedTagFilter === 'All'
       ? flashcards
       : flashcards.filter(card => card.tags && card.tags.includes(selectedTagFilter));
 
-  // Macro functions
   const handleAddOrUpdateMacro = (command, definition, index = null, isRemove = false) => {
     let newList = [...macroList];
     if (isRemove && index !== null) {
@@ -488,13 +654,8 @@ function FlashcardApp() {
     setMacros(newMacros);
   };
 
-  // ----------------------------
-  // Export / Import Functionality
-  // ----------------------------
   const handleExport = async () => {
     const data = JSON.stringify({ flashcards, allTags, macroList }, null, 2);
-    
-    // Use the File System Access API if available.
     if (window.showSaveFilePicker) {
       try {
         const opts = {
@@ -505,7 +666,6 @@ function FlashcardApp() {
             },
           ],
         };
-        // Opens the native Save dialog.
         const fileHandle = await window.showSaveFilePicker(opts);
         const writableStream = await fileHandle.createWritable();
         await writableStream.write(data);
@@ -514,7 +674,6 @@ function FlashcardApp() {
         console.error('Export canceled or failed: ', err);
       }
     } else {
-      // Fallback: create a blob and download it with a default name.
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -524,12 +683,11 @@ function FlashcardApp() {
       URL.revokeObjectURL(url);
     }
   };
-  
-  
 
   const handleImport = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -549,13 +707,16 @@ function FlashcardApp() {
       }
     };
     reader.readAsText(file);
+
+    // IMPORTANT: reset the file input so we can import again
+    e.target.value = null;
   };
 
   return (
     <div style={{ padding: '2rem' }}>
       <h1>LaTeX Flashcard Creator</h1>
 
-      {/* Flashcard Editor: Side-by-side inputs */}
+      {/* Front/Back Editor Section */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ flex: 1 }}>
           <h2>Front</h2>
@@ -587,7 +748,7 @@ function FlashcardApp() {
         </div>
       </div>
 
-      {/* Controls: Macros, Submit Flashcard, Export/Import */}
+      {/* Buttons below the previews */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
         <button className="btn" onClick={() => setShowMacroModal(true)}>
           Define Macros
@@ -607,9 +768,12 @@ function FlashcardApp() {
             accept="application/json"
           />
         </label>
+        <button className="btn" onClick={() => setShowFlashcardViewer(true)}>
+          View Flashcards
+        </button>
       </div>
 
-      {/* Filter by Tag */}
+      {/* Tag Filter for the main list */}
       <div style={{ marginBottom: '1rem' }}>
         <label htmlFor="tagFilter"><strong>Filter by Tag:</strong></label>
         <select
@@ -636,6 +800,7 @@ function FlashcardApp() {
             macros={macros}
             onEdit={() => handleEditCard(index)}
             onTag={() => openTagModal(index)}
+            onDelete={() => handleDeleteCard(index)}  // NEW
           />
         ))}
       </div>
@@ -655,6 +820,20 @@ function FlashcardApp() {
           onClose={() => setTagModalFlashcardIndex(null)}
           onSave={handleSaveTags}
           currentTags={flashcards[tagModalFlashcardIndex]?.tags || []}
+          allTags={allTags}
+        />
+      )}
+
+      {/* Flashcard Viewer */}
+      {showFlashcardViewer && (
+        <FlashcardViewerModal
+          flashcards={flashcards}
+          macros={macros}
+          onClose={() => setShowFlashcardViewer(false)}
+          onEditCard={handleEditCard}
+          onTagCard={openTagModal}
+          viewerTagFilter={viewerTagFilter}
+          setViewerTagFilter={setViewerTagFilter}
           allTags={allTags}
         />
       )}

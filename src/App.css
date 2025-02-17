@@ -1,26 +1,27 @@
+/* Restrict textareas to vertical resizing and set a minimum size */
+.latexTextbox {
+  resize: vertical;
+  min-height: 150px; /* or whatever "default" you want */
+  width: 100%;
+  box-sizing: border-box;
+  font-family: "Computer Modern", serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: 0.5rem;
+}
 
-  /* Textareas for front/back content */
-  .latexTextbox {
-    font-family: "Computer Modern", serif;
-    font-size: 1rem;
-    line-height: 1.5;
-    padding: 0.5rem;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-/* Preview container: normal text will be 1.2rem */
+/* Preview container (preserves line breaks, left aligned) */
 .previewContainer {
-    border: 1px solid #ccc;
-    padding: 1rem;
-    min-height: 100px;
-    white-space: pre-wrap;
-    width: 100%;
-    box-sizing: border-box;
-    font-family: "Computer Modern", serif;
-    font-size: 1rem;
-    line-height: 1.5;
-  }
+  white-space: pre-wrap;
+  text-align: left;
+  min-height: 100px;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  box-sizing: border-box;
+  font-family: "Computer Modern", serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
   
   /* Force all KaTeX-rendered math to inherit a base size of 1rem */
   .previewContainer .katex,
@@ -63,33 +64,6 @@ body {
     color: #333;
   }
   
-  /* Textareas */
-  .latexTextbox {
-    font-family: "Computer Modern", serif;
-    font-size: 1rem;
-    line-height: 1.5;
-    padding: 0.5rem;
-    width: 100%;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  /* Preview Containers */
-  .previewContainer {
-    border: 1px solid #ccc;
-    padding: 1rem;
-    min-height: 100px;
-    white-space: pre-wrap;
-    width: 100%;
-    box-sizing: border-box;
-    font-family: "Computer Modern", serif;
-    font-size: 1rem;
-    line-height: 1.5;
-    background-color: #fff;
-    border-radius: 4px;
-  }
-  
   /* Buttons */
   .btn {
     background-color: #007bff;
@@ -102,7 +76,7 @@ body {
     font-size: 1rem;
   }
   .btn:hover {
-    background-color: #0056b3;
+    background-color: #419dff;
     transform: scale(1.02);
   }
   
@@ -173,3 +147,72 @@ body {
     color: white;
     transform: scale(1);
   }
+/* Preview containers preserve line breaks and left align */
+.previewContainer {
+  white-space: pre-wrap;  /* preserves line breaks */
+  text-align: left;       /* left-aligned text */
+  min-height: 100px;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* Flashcard Viewer Modal */
+.flashcard-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.flashcard-modal {
+  background-color: white;
+  padding: 1rem;
+  width: 600px;
+  max-width: 90%;
+  border-radius: 4px;
+  position: relative;
+  text-align: center;
+}
+
+.flashcard {
+  border: 1px solid #ccc;
+  padding: 15px;
+  font-size: 1.2em;
+  cursor: pointer;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  margin-bottom: 10px;
+  /* If you want line breaks & left alignment in the modal too, 
+     rely on the RenderedCard's style or add these: */
+  /* white-space: pre-wrap; 
+     text-align: left; */
+}
+
+.nav-button {
+  background: none;
+  border: none;
+  margin: 0 10px;
+  font-size: 2em;
+  color: #007bff;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+
+.shuffle-btn {
+  margin-top: 10px;
+}
